@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chakin Farm - Cashew Farm Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fontsource/poppins@4.5.0/index.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Poppins', sans-serif; }
+        :root {
+            --primary: #8B6914;
+            --primary-light: #D4A843;
+            --primary-dark: #6B5210;
+            --green: #4A7C59;
+            --green-light: #6B9E76;
+            --cream: #FFF8E7;
+            --warm: #F5E6C8;
+        }
+        body { background: var(--cream); }
+        .nav-item.active { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(139,105,20,0.15); }
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in { animation: slideIn 0.4s ease forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .gradient-green { background: linear-gradient(135deg, #4A7C59, #6B9E76); }
+        .gradient-primary { background: linear-gradient(135deg, #8B6914, #D4A843); }
+        .gradient-warm { background: linear-gradient(135deg, #F5E6C8, #FFF8E7); }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .tab-active { border-bottom: 3px solid var(--primary); color: var(--primary); font-weight: 600; }
+        .product-card { transition: all 0.3s ease; }
+        .product-card:hover { transform: scale(1.03); }
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(139,105,20,0.1); }
+        .marketplace-badge { position: absolute; top: 12px; right: 12px; }
+        .progress-bar { transition: width 1s ease; }
+        .notification-badge { animation: bounce 0.6s ease; }
+        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; bottom: 0; left: 0; right: 0; height: auto; width: 100%; z-index: 50; flex-direction: row !important; border-radius: 16px 16px 0 0; }
+            .sidebar .nav-text { display: none; }
+            .sidebar .nav-icon { margin-right: 0; font-size: 1.3rem; }
+            .main-content { padding-bottom: 80px; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="glass sticky top-0 z-40 border-b border-amber-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-lg">V</div>
+                <div>
+                    <h1 class="text-lg font-bold text-amber-900">Chakin Farm</h1>
+                    <p class="text-xs text-amber-600">Cashew Farm Manager</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 relative">
+                <button onclick="toggleNotifications()" class="relative p-2 rounded-lg hover:bg-amber-50 transition">
+                    <svg class="w-6 h-6 text-amber-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    <span class="notification-badge absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                </button>
+                <div class="relative">
+                    <div id="currentFarmerAvatar" class="w-9 h-9 rounded-full gradient-green flex items-center justify-center text-white font-semibold text-sm cursor-pointer select-none" onclick="toggleProfileDropdown()">JD</div>
+                    <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 glass rounded-2xl shadow-xl border border-amber-100 py-2 z-50">
+                        <button onclick="showCurrentFarmerProfile(); closeProfileDropdown();" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 transition flex items-center gap-2">
+                            <span>👨‍🌾</span> My Profile
+                        </button>
+                        <button onclick="handleLogout()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2 border-t border-amber-50">
+                            <span>🚪</span> Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification Panel -->
+    <div id="notificationPanel" class="hidden fixed top-16 right-4 z-50 w-80 glass rounded-2xl shadow-2xl border border-amber-100 overflow-hidden">
+        <div class="p-4 border-b border-amber-100">
+            <h3 class="font-bold text-amber-900">Notifications</h3>
+        </div>
+        <div class="max-h-80 overflow-y-auto">
+            <div class="p-3 hover:bg-amber-50 cursor-pointer border-b border-amber-50 transition slide-in">
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs"></div>
+                    <div><p class="text-sm font-medium text-gray-800">Market prices up 12%</p><p class="text-xs text-gray-500">Cashew prices increased today</p></div>
+                </div>
+            </div>
+            <div class="p-3 hover:bg-amber-50 cursor-pointer border-b border-amber-50 transition slide-in" style="animation-delay:0.1s">
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs"></div>
+                    <div><p class="text-sm font-medium text-gray-800">New buyer interest</p><p class="text-xs text-gray-500">3 buyers want your harvest</p></div>
+                </div>
+            </div>
+            <div class="p-3 hover:bg-amber-50 cursor-pointer transition slide-in" style="animation-delay:0.2s">
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 text-xs"></div>
+                    <div><p class="text-sm font-medium text-gray-800">Harvest reminder</p><p class="text-xs text-gray-500">Best time to harvest in 2 weeks</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex max-w-7xl mx-auto">
+        <!-- Sidebar -->
+        <nav class="sidebar hidden md:flex flex-col w-56 min-h-[calc(100vh-60px)] bg-white/60 border-r border-amber-100 p-4 gap-1 sticky top-[60px]">
+            <button onclick="switchTab('dashboard')" class="nav-item active flex items-center gap-3 p-3 rounded-xl text-sm font-medium transition hover:bg-amber-50" data-tab="dashboard">
+                <span class="nav-icon">📊</span><span class="nav-text">Dashboard</span>
+            </button>
+            <button onclick="switchTab('farming')" class="nav-item flex items-center gap-3 p-3 rounded-xl text-sm font-medium text-gray-600 transition hover:bg-amber-50" data-tab="farming">
+                <span class="nav-icon"></span><span class="nav-text">Farming</span>
+            </button>
+            <button onclick="switchTab('products')" class="nav-item flex items-center gap-3 p-3 rounded-xl text-sm font-medium text-gray-600 transition hover:bg-amber-50" data-tab="products">
+                <span class="nav-icon"></span><span class="nav-text">Products</span>
+            </button>
+            <button onclick="switchTab('farmers')" class="nav-item flex items-center gap-3 p-3 rounded-xl text-sm font-medium text-gray-600 transition hover:bg-amber-50" data-tab="farmers">
+                <span class="nav-icon">👨‍🌾</span><span class="nav-text">Farmers</span>
+            </button>
+            <button onclick="switchTab('marketplace')" class="nav-item flex items-center gap-3 p-3 rounded-xl text-sm font-medium text-gray-600 transition hover:bg-amber-50" data-tab="marketplace">
+                <span class="nav-icon">🏪</span><span class="nav-text">Marketplace</span>
+            </button>
+            <button onclick="switchTab('analytics')" class="nav-item flex items-center gap-3 p-3 rounded-xl text-sm font-medium text-gray-600 transition hover:bg-amber-50" data-tab="analytics">
+                <span class="nav-icon">📈</span><span class="nav-text">Analytics</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content flex-1 p-4 md:p-6">
+
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="tab-content fade-in">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Welcome back, <span id="currentFarmerGreetingName">John</span>! 👋</h2>
+                    <p class="text-gray-500 mt-1">Here's your farm overview for today</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-2xl p-4 card-hover shadow-sm border border-amber-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-2xl">🌳</span>
+                            <span class="text-xs text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full">+12%</span>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">2,450</p>
+                        <p class="text-xs text-gray-500">Cashew Trees</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 card-hover shadow-sm border border-amber-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-2xl">🥜</span>
+                            <span class="text-xs text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full">+8%</span>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">5.2T</p>
+                        <p class="text-xs text-gray-500">Harvest (Tons)</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 card-hover shadow-sm border border-amber-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-2xl">💰</span>
+                            <span class="text-xs text-red-600 font-semibold bg-red-50 px-2 py-1 rounded-full">-3%</span>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">$84K</p>
+                        <p class="text-xs text-gray-500">Revenue</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 card-hover shadow-sm border border-amber-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-2xl">👥</span>
+                            <span class="text-xs text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full">+5</span>
+                        </div>
+                        <p class="text-2xl font-bold text-gray-800">128</p>
+                        <p class="text-xs text-gray-500">Farmers</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 mb-6">
+                    <h3 class="font-bold text-gray-800 mb-4">Quick Actions</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <button onclick="switchTab('farming')" class="flex flex-col items-center gap-2 p-3 rounded-xl bg-green-50 hover:bg-green-100 transition">
+                            <span class="text-2xl"></span><span class="text-xs font-medium text-gray-700">Plant New</span>
+                        </button>
+                        <button onclick="switchTab('marketplace')" class="flex flex-col items-center gap-2 p-3 rounded-xl bg-amber-50 hover:bg-amber-100 transition">
+                            <span class="text-2xl">💹</span><span class="text-xs font-medium text-gray-700">Sell</span>
+                        </button>
+                        <button onclick="switchTab('marketplace')" class="flex flex-col items-center gap-2 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 transition">
+                            <span class="text-2xl"></span><span class="text-xs font-medium text-gray-700">Buy</span>
+                        </button>
+                        <button onclick="switchTab('analytics')" class="flex flex-col items-center gap-2 p-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition">
+                            <span class="text-2xl">📊</span><span class="text-xs font-medium text-gray-700">Analyze</span>
+                        </button>
+                        <button onclick="showAddFarmerModal()" class="flex flex-col items-center gap-2 p-3 rounded-xl bg-rose-50 hover:bg-rose-100 transition">
+                            <span class="text-2xl">➕</span><span class="text-xs font-medium text-gray-700">Add Farmer</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Farm Activity Timeline -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">Recent Activity</h3>
+                        <div class="space-y-4">
+                            <div class="flex gap-3 items-start">
+                                <div class="w-2 h-2 rounded-full bg-green-500 mt-2 pulse-dot"></div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Harvested 500kg from Block A</p>
+                                    <p class="text-xs text-gray-500">2 hours ago</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3 items-start">
+                                <div class="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">New buyer: Lagos Wholesale Market</p>
+                                    <p class="text-xs text-gray-500">5 hours ago</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3 items-start">
+                                <div class="w-2 h-2 rounded-full bg-amber-500 mt-2"></div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Fertilizer application completed</p>
+                                    <p class="text-xs text-gray-500">Yesterday</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3 items-start">
+                                <div class="w-2 h-2 rounded-full bg-purple-500 mt-2"></div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Added 3 new farmer profiles</p>
+                                    <p class="text-xs text-gray-500">2 days ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">Farm Status</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-600">Tree Health</span><span class="font-semibold text-green-600">92%</span></div>
+                                <div class="w-full bg-gray-100 rounded-full h-2"><div class="progress-bar bg-green-500 h-2 rounded-full" style="width:92%"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-600">Soil Moisture</span><span class="font-semibold text-blue-600">68%</span></div>
+                                <div class="w-full bg-gray-100 rounded-full h-2"><div class="progress-bar bg-blue-500 h-2 rounded-full" style="width:68%"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-600">Harvest Progress</span><span class="font-semibold text-amber-600">75%</span></div>
+                                <div class="w-full bg-gray-100 rounded-full h-2"><div class="progress-bar bg-amber-500 h-2 rounded-full" style="width:75%"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1"><span class="text-gray-600">Storage Capacity</span><span class="font-semibold text-purple-600">45%</span></div>
+                                <div class="w-full bg-gray-100 rounded-full h-2"><div class="progress-bar bg-purple-500 h-2 rounded-full" style="width:45%"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Farming Section -->
+            <section id="section-farming" class="tab-content hidden fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Cashew Farming 🌿</h2>
+                        <p class="text-gray-500 mt-1">Farming practices and activities</p>
+                    </div>
+                    <button onclick="showAddFarmingLog()" class="gradient-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition">+ Log Activity</button>
+                </div>
+
+                <!-- Farming Guide Cards -->
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50">
+                        <img src="https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1e875b851-cf45-4c30-a78d-ef3fb2f26260.png" alt="Cashew Farm" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">Planting Guide</h4>
+                            <p class="text-sm text-gray-500 mb-3">Best practices for planting cashew trees for maximum yield and healthy growth.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Seasonal</span>
+                                <span class="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">6-8 months</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50">
+                        <div class="w-full h-48 gradient-green flex items-center justify-center">
+                            <span class="text-6xl">🌱</span>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">Growth & Care</h4>
+                            <p class="text-sm text-gray-500 mb-3">Monitoring tree health, pruning, and organic pest management techniques.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Organic</span>
+                                <span class="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full">IPM</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-hover bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50">
+                        <div class="w-full h-48 gradient-primary flex items-center justify-center">
+                            <span class="text-6xl">🌾</span>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">Harvest Techniques</h4>
+                            <p class="text-sm text-gray-500 mb-3">Optimal harvest timing, collection methods, and post-harvest processing.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">Feb-Apr</span>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Manual</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Farming Log -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                    <h3 class="font-bold text-gray-800 mb-4">Farming Activity Log</h3>
+                    <div id="farmingLogs" class="space-y-3">
+                        <div class="flex items-center gap-4 p-3 bg-green-50 rounded-xl border border-green-100">
+                            <div class="w-10 h-10 rounded-lg bg-green-200 flex items-center justify-center text-green-700 font-bold text-sm">FEB</div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Pruning completed on 450 trees</p>
+                                <p class="text-sm text-gray-500">Block A & B • 2 days</p>
+                            </div>
+                            <span class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">Completed</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                            <div class="w-10 h-10 rounded-lg bg-amber-200 flex items-center justify-center text-amber-700 font-bold text-sm">MAR</div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Organic fertilizer application</p>
+                                <p class="text-sm text-gray-500">All blocks • In progress</p>
+                            </div>
+                            <span class="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-medium">In Progress</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                            <div class="w-10 h-10 rounded-lg bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm">APR</div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Pre-harvest inspection</p>
+                                <p class="text-sm text-gray-500">Block C • Scheduled</p>
+                            </div>
+                            <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">Scheduled</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                            <div class="w-10 h-10 rounded-lg bg-purple-200 flex items-center justify-center text-purple-700 font-bold text-sm">APR</div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-800">Harvest season begins</p>
+                                <p class="text-sm text-gray-500">All blocks • Upcoming</p>
+                            </div>
+                            <span class="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium">Upcoming</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Section -->
+            <section id="section-products" class="tab-content hidden fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Cashew Products 🥜</h2>
+                        <p class="text-gray-500 mt-1">Raw and processed cashew nut products</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="filterProducts('all')" class="product-filter active px-4 py-2 rounded-xl text-sm font-medium bg-amber-100 text-amber-800 transition" data-filter="all">All</button>
+                        <button onclick="filterProducts('raw')" class="product-filter px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 transition" data-filter="raw">Raw</button>
+                        <button onclick="filterProducts('processed')" class="product-filter px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 transition" data-filter="processed">Processed</button>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="raw" onclick="showProductDetail('Raw Cashew Nuts')">
+                        <img src="https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1e17f939c-df0d-4204-b9cb-bfa1fe4641ee.png" alt="Raw Cashew" class="w-full h-40 object-cover">
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Raw Cashew Nuts</h4>
+                            <p class="text-xs text-gray-500 mt-1">Premium grade, organic</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$3.50/kg</span>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">In Stock</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="processed" onclick="showProductDetail('Roasted Cashews')">
+                        <img src="https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1e17f939c-df0d-4204-b9cb-bfa1fe4641ee.png" alt="Roasted" class="w-full h-40 object-cover">
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Roasted Cashews</h4>
+                            <p class="text-xs text-gray-500 mt-1">Salted, honey & plain</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$8.00/kg</span>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">In Stock</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="processed" onclick="showProductDetail('Cashew Butter')">
+                        <img src="https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1e17f939c-df0d-4204-b9cb-bfa1fe4641ee.png" alt="Butter" class="w-full h-40 object-cover">
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Cashew Butter</h4>
+                            <p class="text-xs text-gray-500 mt-1">100% pure, smooth</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$12.00/jar</span>
+                                <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">Limited</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="processed" onclick="showProductDetail('Cashew Milk')">
+                        <img src="https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1e17f939c-df0d-4204-b9cb-bfa1fe4641ee.png" alt="Milk" class="w-full h-40 object-cover">
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Cashew Milk</h4>
+                            <p class="text-xs text-gray-500 mt-1">Unsweetened, organic</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$4.50/liter</span>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">In Stock</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="raw" onclick="showProductDetail('Cashew Apple Juice')">
+                        <div class="w-full h-40 bg-gradient-to-br from-orange-200 to-red-200 flex items-center justify-center">
+                            <span class="text-5xl">🧃</span>
+                        </div>
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Cashew Apple Juice</h4>
+                            <p class="text-xs text-gray-500 mt-1">Fresh, natural</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$5.00/liter</span>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">In Stock</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="raw" onclick="showProductDetail('Cashew Shell Oil')">
+                        <div class="w-full h-40 bg-gradient-to-br from-amber-200 to-yellow-200 flex items-center justify-center">
+                            <span class="text-5xl"></span>
+                        </div>
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Cashew Shell Oil</h4>
+                            <p class="text-xs text-gray-500 mt-1">Industrial grade</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$2.80/kg</span>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">In Stock</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="processed" onclick="showProductDetail('Cashew Flour')">
+                        <div class="w-full h-40 bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center">
+                            <span class="text-5xl"></span>
+                        </div>
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Cashew Flour</h4>
+                            <p class="text-xs text-gray-500 mt-1">Gluten-free, fine</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$6.50/kg</span>
+                                <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">Limited</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-amber-50 cursor-pointer" data-category="raw" onclick="showProductDetail('Dried Cashew Apple')">
+                        <div class="w-full h-40 bg-gradient-to-br from-red-200 to-orange-100 flex items-center justify-center">
+                            <span class="text-5xl"></span>
+                        </div>
+                        <div class="p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm">Dried Cashew Apple</h4>
+                            <p class="text-xs text-gray-500 mt-1">Sun-dried, chewy</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="font-bold text-green-600 text-sm">$4.00/kg</span>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">In Stock</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Farmers Section -->
+            <section id="section-farmers" class="tab-content hidden fade-in">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Farmer Profiles 👨‍🌾</h2>
+                        <p class="text-gray-500 mt-1">Manage farmer information and connections</p>
+                    </div>
+                    <button onclick="showAddFarmerModal()" class="gradient-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition">+ Add Farmer</button>
+                </div>
+
+                <!-- Search -->
+                <div class="mb-4">
+                    <input type="text" id="farmerSearch" placeholder="Search farmers..." oninput="searchFarmers(this.value)" class="w-full px-4 py-3 rounded-xl border border-amber-200 bg-white text-sm placeholder-gray-400">
+                </div>
+
+                <!-- Farmers Grid -->
+                <div id="farmersGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="farmer-card bg-white rounded-2xl p-5 shadow-sm border border-amber-50 card-hover cursor-pointer" onclick="showFarmerProfile('ada')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-full gradient-green flex items-center justify-center text-white font-bold text-lg">AA</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800">Adebayo Adeyemi</h4>
+                                <p class="text-xs text-gray-500">Ondo State, Nigeria</p>
+                            </div>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="bg-green-50 rounded-lg p-2">
+                                <p class="font-bold text-green-700 text-sm">450</p>
+                                <p class="text-xs text-green-600">Trees</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-2">
+                                <p class="font-bold text-amber-700 text-sm">1.2T</p>
+                                <p class="text-xs text-amber-600">Harvest</p>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2">
+                                <p class="font-bold text-blue-700 text-sm">5yr</p>
+                                <p class="text-xs text-blue-600">Exp</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-xs text-gray-500">⭐ 4.8 rating • 128 transactions</p>
+                        </div>
+                    </div>
+                    <div class="farmer-card bg-white rounded-2xl p-5 shadow-sm border border-amber-50 card-hover cursor-pointer" onclick="showFarmerProfile('john')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <img src="https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1dfd41b77-f0b0-4485-9913-a4d60e820b71.png" alt="Farmer" class="w-14 h-14 rounded-full object-cover">
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800">Emmanuel Okafor</h4>
+                                <p class="text-xs text-gray-500">Enugu State, Nigeria</p>
+                            </div>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="bg-green-50 rounded-lg p-2">
+                                <p class="font-bold text-green-700 text-sm">820</p>
+                                <p class="text-xs text-green-600">Trees</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-2">
+                                <p class="font-bold text-amber-700 text-sm">2.8T</p>
+                                <p class="text-xs text-amber-600">Harvest</p>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2">
+                                <p class="font-bold text-blue-700 text-sm">8yr</p>
+                                <p class="text-xs text-blue-600">Exp</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-xs text-gray-500">⭐ 4.9 rating • 256 transactions</p>
+                        </div>
+                    </div>
+                    <div class="farmer-card bg-white rounded-2xl p-5 shadow-sm border border-amber-50 card-hover cursor-pointer" onclick="showFarmerProfile('mariam')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-full gradient-primary flex items-center justify-center text-white font-bold text-lg">MO</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800">Mariam Bello</h4>
+                                <p class="text-xs text-gray-500">Kwara State, Nigeria</p>
+                            </div>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="bg-green-50 rounded-lg p-2">
+                                <p class="font-bold text-green-700 text-sm">320</p>
+                                <p class="text-xs text-green-600">Trees</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-2">
+                                <p class="font-bold text-amber-700 text-sm">0.9T</p>
+                                <p class="text-xs text-amber-600">Harvest</p>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2">
+                                <p class="font-bold text-blue-700 text-sm">3yr</p>
+                                <p class="text-xs text-blue-600">Exp</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-xs text-gray-500">⭐ 4.6 rating • 67 transactions</p>
+                        </div>
+                    </div>
+                    <div class="farmer-card bg-white rounded-2xl p-5 shadow-sm border border-amber-50 card-hover cursor-pointer" onclick="showFarmerProfile('kwame')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center text-white font-bold text-lg">KA</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800">Kwame Asante</h4>
+                                <p class="text-xs text-gray-500">Ashanti Region, Ghana</p>
+                            </div>
+                            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">New</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="bg-green-50 rounded-lg p-2">
+                                <p class="font-bold text-green-700 text-sm">200</p>
+                                <p class="text-xs text-green-600">Trees</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-2">
+                                <p class="font-bold text-amber-700 text-sm">0.5T</p>
+                                <p class="text-xs text-amber-600">Harvest</p>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2">
+                                <p class="font-bold text-blue-700 text-sm">2yr</p>
+                                <p class="text-xs text-blue-600">Exp</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-xs text-gray-500">⭐ 4.5 rating • 23 transactions</p>
+                        </div>
+                    </div>
+                    <div class="farmer-card bg-white rounded-2xl p-5 shadow-sm border border-amber-50 card-hover cursor-pointer" onclick="showFarmerProfile('fatima')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold text-lg">FN</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800">Fatima Ndiaye</h4>
+                                <p class="text-xs text-gray-500">Kolda Region, Senegal</p>
+                            </div>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="bg-green-50 rounded-lg p-2">
+                                <p class="font-bold text-green-700 text-sm">680</p>
+                                <p class="text-xs text-green-600">Trees</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-2">
+                                <p class="font-bold text-amber-700 text-sm">2.1T</p>
+                                <p class="text-xs text-amber-600">Harvest</p>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2">
+                                <p class="font-bold text-blue-700 text-sm">10yr</p>
+                                <p class="text-xs text-blue-600">Exp</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-xs text-gray-500">⭐ 4.9 rating • 312 transactions</p>
+                        </div>
+                    </div>
+                    <div class="farmer-card bg-white rounded-2xl p-5 shadow-sm border border-amber-50 card-hover cursor-pointer" onclick="showFarmerProfile('samuel')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center text-white font-bold text-lg">SO</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800">Samuel Osei</h4>
+                                <p class="text-xs text-gray-500">Central Region, Ghana</p>
+                            </div>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="bg-green-50 rounded-lg p-2">
+                                <p class="font-bold text-green-700 text-sm">540</p>
+                                <p class="text-xs text-green-600">Trees</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-2">
+                                <p class="font-bold text-amber-700 text-sm">1.6T</p>
+                                <p class="text-xs text-amber-600">Harvest</p>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2">
+                                <p class="font-bold text-blue-700 text-sm">7yr</p>
+                                <p class="text-xs text-blue-600">Exp</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-xs text-gray-500">⭐ 4.7 rating • 189 transactions</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Marketplace Section -->
+            <section id="section-marketplace" class="tab-content hidden fade-in">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Marketplace 🏪</h2>
+                    <p class="text-gray-500 mt-1">Buy and sell cashew nuts</p>
+                </div>
+
+                <!-- Marketplace Tabs -->
+                <div class="flex gap-1 mb-4 bg-white rounded-xl p-1 shadow-sm">
+                    <button onclick="switchMarketTab('buy')" class="market-tab flex-1 py-2 rounded-lg text-sm font-medium bg-amber-100 text-amber-800 transition" data-market-tab="buy">🛒 Buy</button>
+                    <button onclick="switchMarketTab('sell')" class="market-tab flex-1 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition" data-market-tab="sell">💰 Sell</button>
+                    <button onclick="switchMarketTab('listings')" class="market-tab flex-1 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition" data-market-tab="listings">📋 Listings</button>
+                </div>
+
+                <!-- Buy Section -->
+                <div id="market-buy" class="market-content">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 mb-4">
+                        <h3 class="font-bold text-gray-800 mb-4">Current Buying Opportunities</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                <img src="https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1be62291c-af0c-46ce-9200-f40552ae78eb.png" alt="Market" class="w-16 h-16 rounded-xl object-cover">
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Premium Raw Cashews - 5 Tons</h4>
+                                    <p class="text-xs text-gray-500">Buyer: Lagos Processing Co. • Verified</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-sm font-bold text-green-600">$3.80/kg</span>
+                                        <span class="text-xs text-gray-400">• Min order: 500kg</span>
+                                    </div>
+                                </div>
+                                <button onclick="showTradeModal('buy','Premium Raw Cashews - 5 Tons')" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition">Offer</button>
+                            </div>
+                            <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                <div class="w-16 h-16 rounded-xl bg-blue-200 flex items-center justify-center text-3xl"></div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Roasted Cashews - 2 Tons</h4>
+                                    <p class="text-xs text-gray-500">Buyer: Accra Distributors • Verified</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-sm font-bold text-green-600">$9.20/kg</span>
+                                        <span class="text-xs text-gray-400">• Min order: 200kg</span>
+                                    </div>
+                                </div>
+                                <button onclick="showTradeModal('buy','Roasted Cashews - 2 Tons')" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition">Offer</button>
+                            </div>
+                            <div class="flex items-center gap-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
+                                <div class="w-16 h-16 rounded-xl bg-purple-200 flex items-center justify-center text-3xl">🫗</div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Cashew Shell Oil - 1 Ton</h4>
+                                    <p class="text-xs text-gray-500">Buyer: Industrial Corp • Verified</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-sm font-bold text-green-600">$3.10/kg</span>
+                                        <span class="text-xs text-gray-400">• Min order: 100kg</span>
+                                    </div>
+                                </div>
+                                <button onclick="showTradeModal('buy','Cashew Shell Oil - 1 Ton')" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition">Offer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sell Section -->
+                <div id="market-sell" class="market-content hidden">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 mb-4">
+                        <h3 class="font-bold text-gray-800 mb-4">Create New Sell Listing</h3>
+                        <form onsubmit="createListing(event, 'sell')" class="space-y-4">
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                                    <select class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" id="sellProduct">
+                                        <option>Raw Cashew Nuts</option>
+                                        <option>Roasted Cashews</option>
+                                        <option>Cashew Butter</option>
+                                        <option>Cashew Shell Oil</option>
+                                        <option>Cashew Flour</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantity (kg)</label>
+                                    <input type="number" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Enter quantity" required>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Price per kg ($)</label>
+                                    <input type="number" step="0.01" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="0.00" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Min Order (kg)</label>
+                                    <input type="number" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Minimum order" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" rows="3" placeholder="Describe your product quality, grade, etc." required></textarea>
+                            </div>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Available</label>
+                                    <select class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                                        <option>Yes - Buyer pays shipping</option>
+                                        <option>Yes - Seller covers shipping</option>
+                                        <option>Local pickup only</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
+                                    <select class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                                        <option>Cash on delivery</option>
+                                        <option>Bank transfer</option>
+                                        <option>50% advance, 50% on delivery</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full gradient-primary text-white py-3 rounded-xl font-medium hover:opacity-90 transition">Create Sell Listing</button>
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">Your Active Listings</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-4 p-4 bg-green-50 rounded-xl border border-green-100">
+                                <div class="w-12 h-12 rounded-lg bg-green-200 flex items-center justify-center text-xl">🥜</div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Raw Cashew Nuts - 2T</h4>
+                                    <p class="text-xs text-gray-500">$3.50/kg • 15 views • 3 inquiries</p>
+                                </div>
+                                <span class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">Active</span>
+                            </div>
+                            <div class="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                <div class="w-12 h-12 rounded-lg bg-amber-200 flex items-center justify-center text-xl">🫗</div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Cashew Shell Oil - 500kg</h4>
+                                    <p class="text-xs text-gray-500">$2.80/kg • 8 views • 1 inquiry</p>
+                                </div>
+                                <span class="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Listings Section -->
+                <div id="market-listings" class="market-content hidden">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">All Market Listings</h3>
+                        <div class="space-y-3" id="listingsContainer">
+                            <div class="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                <div class="w-12 h-12 rounded-lg bg-amber-200 flex items-center justify-center text-xl">🥜</div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Raw Cashew Nuts - Grade A</h4>
+                                    <p class="text-xs text-gray-500">Seller: Adebayo Adeyemi • Ondo</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="font-bold text-green-600 text-sm">$3.50/kg</span>
+                                        <span class="text-xs text-gray-400">• 2T available</span>
+                                    </div>
+                                </div>
+                                <button onclick="showTradeModal('buy','Raw Cashew Nuts - Grade A')" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition">Buy</button>
+                            </div>
+                            <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                <div class="w-12 h-12 rounded-lg bg-blue-200 flex items-center justify-center text-xl">🥜</div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Roasted Cashews - Mixed</h4>
+                                    <p class="text-xs text-gray-500">Seller: Fatima Ndiaye • Senegal</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="font-bold text-green-600 text-sm">$8.50/kg</span>
+                                        <span class="text-xs text-gray-400">• 800kg available</span>
+                                    </div>
+                                </div>
+                                <button onclick="showTradeModal('buy','Roasted Cashews - Mixed')" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition">Buy</button>
+                            </div>
+                            <div class="flex items-center gap-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
+                                <div class="w-12 h-12 rounded-lg bg-purple-200 flex items-center justify-center text-xl">🫗</div>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-800 text-sm">Cashew Shell Oil - Industrial</h4>
+                                    <p class="text-xs text-gray-500">Seller: Samuel Osei • Ghana</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="font-bold text-green-600 text-sm">$2.80/kg</span>
+                                        <span class="text-xs text-gray-400">• 1.5T available</span>
+                                    </div>
+                                </div>
+                                <button onclick="showTradeModal('buy','Cashew Shell Oil - Industrial')" class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition">Buy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="section-analytics" class="tab-content hidden fade-in">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Market Analysis 📈</h2>
+                    <p class="text-gray-500 mt-1">Price trends, market insights, and analytics</p>
+                </div>
+
+                <!-- Price Overview -->
+                <div class="grid md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-50">
+                        <p class="text-xs text-gray-500 mb-1">Avg Raw Price</p>
+                        <p class="text-xl font-bold text-gray-800">$3.45<span class="text-sm text-gray-400">/kg</span></p>
+                        <p class="text-xs text-green-600 mt-1">↑ 8.2% vs last month</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-50">
+                        <p class="text-xs text-gray-500 mb-1">Avg Processed</p>
+                        <p class="text-xl font-bold text-gray-800">$8.90<span class="text-sm text-gray-400">/kg</span></p>
+                        <p class="text-xs text-green-600 mt-1">↑ 12.5% vs last month</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-50">
+                        <p class="text-xs text-gray-500 mb-1">Total Volume</p>
+                        <p class="text-xl font-bold text-gray-800">15.8T</p>
+                        <p class="text-xs text-green-600 mt-1">↑ 18.3% vs last month</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-50">
+                        <p class="text-xs text-gray-500 mb-1">Active Traders</p>
+                        <p class="text-xl font-bold text-gray-800">342</p>
+                        <p class="text-xs text-red-500 mt-1">↓ 2.1% vs last month</p>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">Price Trends (Last 12 Months)</h3>
+                        <canvas id="priceChart" height="250"></canvas>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">Market Share by Region</h3>
+                        <canvas id="regionChart" height="250"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">Monthly Production Volume</h3>
+                        <canvas id="productionChart" height="250"></canvas>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
+                        <h3 class="font-bold text-gray-800 mb-4">Product Category Distribution</h3>
+                        <canvas id="categoryChart" height="250"></canvas>
+                    </div>
+                </div>
+
+                <!-- Market Insights -->
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 mt-6">
+                    <h3 class="font-bold text-gray-800 mb-4">📊 Market Insights</h3>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="p-4 bg-green-50 rounded-xl border border-green-100">
+                            <h4 class="font-semibold text-green-800 text-sm mb-2">🔥 High Demand</h4>
+                            <p class="text-xs text-green-700">Raw cashew demand is surging in Asian markets. Prices expected to rise 15% in Q2.</p>
+                        </div>
+                        <div class="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                            <h4 class="font-semibold text-amber-800 text-sm mb-2">️ Watch Out</h4>
+                            <p class="text-xs text-amber-700">Weather patterns suggest potential yield reduction in West Africa. Monitor closely.</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                            <h4 class="font-semibold text-blue-800 text-sm mb-2">💡 Opportunity</h4>
+                            <p class="text-xs text-blue-700">Cashew butter and milk markets growing 25% YoY. Consider value-added products.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-amber-100 z-50 px-2 py-1">
+        <div class="flex justify-around">
+            <button onclick="switchTab('dashboard')" class="mobile-nav active flex flex-col items-center py-1 px-3 rounded-xl" data-tab="dashboard">
+                <span class="text-lg">📊</span><span class="text-[10px] font-medium text-gray-600 mt-0.5">Home</span>
+            </button>
+            <button onclick="switchTab('farming')" class="mobile-nav flex flex-col items-center py-1 px-3 rounded-xl" data-tab="farming">
+                <span class="text-lg">🌿</span><span class="text-[10px] font-medium text-gray-600 mt-0.5">Farming</span>
+            </button>
+            <button onclick="switchTab('products')" class="mobile-nav flex flex-col items-center py-1 px-3 rounded-xl" data-tab="products">
+                <span class="text-lg">🥜</span><span class="text-[10px] font-medium text-gray-600 mt-0.5">Products</span>
+            </button>
+            <button onclick="switchTab('marketplace')" class="mobile-nav flex flex-col items-center py-1 px-3 rounded-xl" data-tab="marketplace">
+                <span class="text-lg"></span><span class="text-[10px] font-medium text-gray-600 mt-0.5">Market</span>
+            </button>
+            <button onclick="switchTab('analytics')" class="mobile-nav flex flex-col items-center py-1 px-3 rounded-xl" data-tab="analytics">
+                <span class="text-lg"></span><span class="text-[10px] font-medium text-gray-600 mt-0.5">Analytics</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Farmer Profile Modal -->
+    <div id="farmerModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-overlay absolute inset-0" onclick="closeFarmerModal()"></div>
+        <div class="relative bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
+            <button onclick="closeFarmerModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 z-10">✕</button>
+            <div id="farmerModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Add Farmer Modal -->
+    <div id="addFarmerModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-overlay absolute inset-0" onclick="closeAddFarmerModal()"></div>
+        <div class="relative bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Farmer</h3>
+            <form id="addFarmerForm" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                        <input name="firstName" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Enter first name" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                        <input name="lastName" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Enter last name" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input name="location" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="State/Region, Country" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                        <input name="phone" type="tel" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="+234..." required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input name="email" type="email" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="email@example.com">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Number of Trees</label>
+                    <input name="numberOfTrees" type="number" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Enter number of trees" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Experience (years)</label>
+                    <input name="yearsOfExperience" type="number" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Years of farming" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                    <select name="specialization" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                        <option>Raw Cashew Production</option>
+                        <option>Processed Products</option>
+                        <option>Organic Farming</option>
+                        <option>Export Grade</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                    <textarea name="bio" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" rows="3" placeholder="Brief biography or notes"></textarea>
+                </div>
+                <button type="submit" id="addFarmerSubmit" data-original-text="Add Farmer" class="w-full gradient-primary text-white py-3 rounded-xl font-medium hover:opacity-90 transition">Add Farmer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trade Modal -->
+    <div id="tradeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-overlay absolute inset-0" onclick="closeTradeModal()"></div>
+        <div class="relative bg-white rounded-3xl w-full max-w-md shadow-2xl p-6">
+            <button onclick="closeTradeModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">✕</button>
+            <h3 class="text-xl font-bold text-gray-800 mb-2" id="tradeModalTitle">Place Order</h3>
+            <p class="text-sm text-gray-500 mb-4" id="tradeModalProduct"></p>
+            <form id="tradeForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantity (kg)</label>
+                    <input name="quantity" type="number" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Enter quantity" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Your Offer Price ($/kg)</label>
+                    <input name="price" type="number" step="0.01" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="0.00" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Minimum Order (kg)</label>
+                    <input name="minOrder" type="number" step="0.01" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Enter minimum order" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
+                    <textarea name="deliveryAddress" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" rows="2" placeholder="Enter delivery address" required></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                    <select name="paymentMethod" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                        <option>Bank Transfer</option>
+                        <option>Cash on Delivery</option>
+                        <option>Mobile Money</option>
+                        <option>Escrow</option>
+                    </select>
+                </div>
+                <button type="submit" id="tradeSubmit" data-original-text="Submit Order" class="w-full gradient-green text-white py-3 rounded-xl font-medium hover:opacity-90 transition">Submit Order</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div id="productModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-overlay absolute inset-0" onclick="closeProductModal()"></div>
+        <div class="relative bg-white rounded-3xl w-full max-w-md shadow-2xl p-6">
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">✕</button>
+            <div id="productModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Farming Log Modal -->
+    <div id="farmingLogModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="modal-overlay absolute inset-0" onclick="closeFarmingLogModal()"></div>
+        <div class="relative bg-white rounded-3xl w-full max-w-md shadow-2xl p-6">
+            <button onclick="closeFarmingLogModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"></button>
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Log Farming Activity</h3>
+            <form id="farmingLogForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Activity Type</label>
+                    <select name="activity" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" required>
+                        <option>Planting</option>
+                        <option>Pruning</option>
+                        <option>Fertilizer Application</option>
+                        <option>Pest Control</option>
+                        <option>Irrigation</option>
+                        <option>Harvesting</option>
+                        <option>Inspection</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Block/Area</label>
+                    <input name="block" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="e.g., Block A" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea name="description" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" rows="3" placeholder="Describe the activity..." required></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                        <input name="quantity" type="number" step="0.01" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="Amount" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                        <input name="unit" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" placeholder="kg / liters" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input name="date" type="date" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select name="status" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm">
+                            <option>Completed</option>
+                            <option>In Progress</option>
+                            <option>Scheduled</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" id="farmingLogSubmit" data-original-text="Log Activity" class="w-full gradient-primary text-white py-3 rounded-xl font-medium hover:opacity-90 transition">Log Activity</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white px-6 py-3 rounded-xl shadow-xl text-sm font-medium transition-all duration-300">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script src="frontend/api-client.js"></script>
+    <script src="frontend/ui-helper.js"></script>
+    <script src="frontend/app.js"></script>
+
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
+            document.getElementById('section-' + tabName).classList.remove('hidden');
+            document.getElementById('section-' + tabName).classList.add('fade-in');
+            
+            // Desktop nav
+            document.querySelectorAll('.nav-item').forEach(n => {
+                n.classList.remove('active');
+                n.classList.add('text-gray-600');
+            });
+            document.querySelector(`.nav-item[data-tab="${tabName}"]`)?.classList.add('active');
+            document.querySelector(`.nav-item[data-tab="${tabName}"]`)?.classList.remove('text-gray-600');
+            
+            // Mobile nav
+            document.querySelectorAll('.mobile-nav').forEach(n => {
+                n.classList.remove('active');
+                n.querySelector('span:last-child')?.classList.remove('text-amber-800');
+            });
+            const mobileNav = document.querySelector(`.mobile-nav[data-tab="${tabName}"]`);
+            if (mobileNav) {
+                mobileNav.classList.add('active');
+            }
+            
+            if (tabName === 'analytics') {
+                setTimeout(initCharts, 100);
+            }
+        }
+
+        // Notifications
+        function toggleNotifications() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        // Marketplace tabs
+        function switchMarketTab(tabName) {
+            document.querySelectorAll('.market-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById('market-' + tabName).classList.remove('hidden');
+            
+            document.querySelectorAll('.market-tab').forEach(t => {
+                t.classList.remove('bg-amber-100', 'text-amber-800');
+                t.classList.add('text-gray-600');
+            });
+            document.querySelector(`.market-tab[data-market-tab="${tabName}"]`).classList.add('bg-amber-100', 'text-amber-800');
+            document.querySelector(`.market-tab[data-market-tab="${tabName}"]`).classList.remove('text-gray-600');
+        }
+
+        // Product filtering
+        function filterProducts(category) {
+            document.querySelectorAll('.product-filter').forEach(f => {
+                f.classList.remove('bg-amber-100', 'text-amber-800');
+                f.classList.add('bg-gray-100', 'text-gray-600');
+            });
+            document.querySelector(`.product-filter[data-filter="${category}"]`).classList.add('bg-amber-100', 'text-amber-800');
+            document.querySelector(`.product-filter[data-filter="${category}"]`).classList.remove('bg-gray-100', 'text-gray-600');
+            
+            document.querySelectorAll('.product-card').forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Farmer search
+        function searchFarmers(query) {
+            const cards = document.querySelectorAll('.farmer-card');
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
+            });
+        }
+
+        // Farmer profile modal
+        const farmerData = {
+            'ada': { name: 'Adebayo Adeyemi', initials: 'AA', location: 'Ondo State, Nigeria', trees: 450, harvest: '1.2T', exp: 5, rating: 4.8, transactions: 128, bio: 'Experienced cashew farmer specializing in organic farming practices. Member of the Nigeria Cashew Farmers Association.', specialization: 'Organic Raw Cashew', phone: '+234 801 234 5678', email: 'adebayo@cashewfarm.ng', img: null },
+            'john': { name: 'Emmanuel Okafor', initials: 'EO', location: 'Enugu State, Nigeria', trees: 820, harvest: '2.8T', exp: 8, rating: 4.9, transactions: 256, bio: 'Top-rated cashew producer with 8 years of experience. Expert in large-scale commercial farming and export-grade processing.', specialization: 'Export Grade', phone: '+234 803 456 7890', email: 'emmanuel@premiumcashews.ng', img: 'https://image.qwenlm.ai/public_source/f8f9bf31-0867-42cc-871b-869ffb944230/1dfd41b77-f0b0-4485-9913-a4d60e820b71.png' },
+            'mariam': { name: 'Mariam Bello', initials: 'MB', location: 'Kwara State, Nigeria', trees: 320, harvest: '0.9T', exp: 3, rating: 4.6, transactions: 67, bio: 'Young and innovative farmer focusing on sustainable farming methods and community development.', specialization: 'Sustainable Farming', phone: '+234 805 678 9012', email: 'mariam@greenfarm.ng', img: null },
+            'kwame': { name: 'Kwame Asante', initials: 'KA', location: 'Ashanti Region, Ghana', trees: 200, harvest: '0.5T', exp: 2, rating: 4.5, transactions: 23, bio: 'New to the platform but growing fast. Passionate about quality cashew production.', specialization: 'Premium Quality', phone: '+233 24 123 4567', email: 'kwame@goldcoastcashew.gh', img: null },
+            'fatima': { name: 'Fatima Ndiaye', initials: 'FN', location: 'Kolda Region, Senegal', trees: 680, harvest: '2.1T', exp: 10, rating: 4.9, transactions: 312, bio: 'Veteran cashew farmer with over a decade of experience. Leading exporter to European markets.', specialization: 'Export & Processing', phone: '+221 77 123 4567', email: 'fatima@senegalcashew.sn', img: null },
+            'samuel': { name: 'Samuel Osei', initials: 'SO', location: 'Central Region, Ghana', trees: 540, harvest: '1.6T', exp: 7, rating: 4.7, transactions: 189, bio: 'Specialized in cashew shell oil production and by-product utilization.', specialization: 'By-products & Oil', phone: '+233 27 987 6543', email: 'samuel@goldcashew.gh', img: null },
+            'current': { name: 'John Doe (You)', initials: 'JD', location: 'Ogun State, Nigeria', trees: 2450, harvest: '5.2T', exp: 12, rating: 4.9, transactions: 524, bio: 'Large-scale cashew farm manager with extensive experience in both farming and processing.', specialization: 'Full Value Chain', phone: '+234 802 111 2222', email: 'john@vibecoding.com', img: null }
+        };
+
+        function showFarmerProfile(id) {
+            const f = farmerData[id];
+            if (!f) return;
+            const imgHtml = f.img ? `<img src="${f.img}" class="w-20 h-20 rounded-full object-cover">` : `<div class="w-20 h-20 rounded-full gradient-green flex items-center justify-center text-white font-bold text-2xl">${f.initials}</div>`;
+            
+            document.getElementById('farmerModalContent').innerHTML = `
+                <div class="p-6">
+                    <div class="flex items-center gap-4 mb-6">
+                        ${imgHtml}
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">${f.name}</h3>
+                            <p class="text-sm text-gray-500">📍 ${f.location}</p>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
+                                <span class="text-xs text-gray-500">⭐ ${f.rating} rating</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-6">${f.bio}</p>
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <div class="bg-green-50 rounded-xl p-3 text-center">
+                            <p class="font-bold text-green-700">${f.trees}</p>
+                            <p class="text-xs text-green-600">Trees</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-3 text-center">
+                            <p class="font-bold text-amber-700">${f.harvest}</p>
+                            <p class="text-xs text-amber-600">Harvest</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-xl p-3 text-center">
+                            <p class="font-bold text-blue-700">${f.exp}yr</p>
+                            <p class="text-xs text-blue-600">Experience</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="text-gray-400">📱</span><span class="text-gray-600">${f.phone}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="text-gray-400">📧</span><span class="text-gray-600">${f.email}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="text-gray-400">️</span><span class="text-gray-600">${f.specialization}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="switchTab('marketplace'); closeFarmerModal();" class="flex-1 gradient-primary text-white py-3 rounded-xl font-medium hover:opacity-90 transition">Trade</button>
+                        <button class="flex-1 border-2 border-amber-200 text-amber-700 py-3 rounded-xl font-medium hover:bg-amber-50 transition">Message</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('farmerModal').classList.remove('hidden');
+        }
+
+        function closeFarmerModal() {
+            document.getElementById('farmerModal').classList.add('hidden');
+        }
+
+        function showAddFarmerModal() {
+            document.getElementById('addFarmerModal').classList.remove('hidden');
+        }
+
+        function closeAddFarmerModal() {
+            document.getElementById('addFarmerModal').classList.add('hidden');
+        }
+
+        function addFarmer(e) {
+            e.preventDefault();
+            closeAddFarmerModal();
+            showToast('✅ Farmer added successfully!');
+        }
+
+        // Trade modal
+        function showTradeModal(type, product) {
+            document.getElementById('tradeModalTitle').textContent = type === 'buy' ? '🛒 Place Buy Order' : '💰 Create Sell Listing';
+            document.getElementById('tradeModalProduct').textContent = product;
+            document.getElementById('tradeModal').classList.remove('hidden');
+        }
+
+        function closeTradeModal() {
+            document.getElementById('tradeModal').classList.add('hidden');
+        }
+
+        function submitTrade(e) {
+            e.preventDefault();
+            closeTradeModal();
+            showToast('✅ Order submitted successfully!');
+        }
+
+        function createListing(e, type) {
+            e.preventDefault();
+            showToast('✅ Listing created successfully!');
+        }
+
+        // Product detail modal
+        function showProductDetail(name) {
+            const prices = { 'Raw Cashew Nuts': '$3.50/kg', 'Roasted Cashews': '$8.00/kg', 'Cashew Butter': '$12.00/jar', 'Cashew Milk': '$4.50/liter', 'Cashew Apple Juice': '$5.00/liter', 'Cashew Shell Oil': '$2.80/kg', 'Cashew Flour': '$6.50/kg', 'Dried Cashew Apple': '$4.00/kg' };
+            document.getElementById('productModalContent').innerHTML = `
+                <div class="text-center mb-4">
+                    <div class="w-32 h-32 mx-auto rounded-2xl bg-gradient-to-br from-amber-100 to-green-100 flex items-center justify-center text-6xl mb-4">🥜</div>
+                    <h3 class="text-xl font-bold text-gray-800">${name}</h3>
+                    <p class="text-2xl font-bold text-green-600 mt-2">${prices[name] || '$3.50/kg'}</p>
+                </div>
+                <div class="space-y-3 mb-6">
+                    <div class="flex justify-between text-sm p-3 bg-gray-50 rounded-lg"><span class="text-gray-500">Grade</span><span class="font-medium">A+ Premium</span></div>
+                    <div class="flex justify-between text-sm p-3 bg-gray-50 rounded-lg"><span class="text-gray-500">Origin</span><span class="font-medium">West Africa</span></div>
+                    <div class="flex justify-between text-sm p-3 bg-gray-50 rounded-lg"><span class="text-gray-500">Stock</span><span class="font-medium text-green-600">In Stock</span></div>
+                    <div class="flex justify-between text-sm p-3 bg-gray-50 rounded-lg"><span class="text-gray-500">Min Order</span><span class="font-medium">100kg</span></div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="switchTab('marketplace'); closeProductModal();" class="flex-1 gradient-primary text-white py-3 rounded-xl font-medium hover:opacity-90 transition">Buy Now</button>
+                    <button class="flex-1 border-2 border-amber-200 text-amber-700 py-3 rounded-xl font-medium hover:bg-amber-50 transition">Add to Cart</button>
+                </div>
+            `;
+            document.getElementById('productModal').classList.remove('hidden');
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').classList.add('hidden');
+        }
+
+        // Farming log modal
+        function showAddFarmingLog() {
+            document.getElementById('farmingLogModal').classList.remove('hidden');
+        }
+
+        function closeFarmingLogModal() {
+            document.getElementById('farmingLogModal').classList.add('hidden');
+        }
+
+        function addFarmingLog(e) {
+            e.preventDefault();
+            closeFarmingLogModal();
+            showToast('✅ Activity logged successfully!');
+        }
+
+        // Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // Charts
+        let chartsInitialized = false;
+        function initCharts() {
+            if (chartsInitialized) return;
+            chartsInitialized = true;
+
+            // Price Trends
+            const priceCtx = document.getElementById('priceChart').getContext('2d');
+            new Chart(priceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Raw Cashew ($/kg)',
+                        data: [2.80, 2.90, 3.10, 3.20, 3.15, 3.30, 3.45, 3.50, 3.40, 3.55, 3.60, 3.45],
+                        borderColor: '#8B6914',
+                        backgroundColor: 'rgba(139,105,20,0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Processed ($/kg)',
+                        data: [6.50, 6.80, 7.20, 7.50, 7.80, 8.00, 8.20, 8.50, 8.80, 9.00, 8.90, 8.90],
+                        borderColor: '#4A7C59',
+                        backgroundColor: 'rgba(74,124,89,0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } },
+                    scales: { y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
+                }
+            });
+
+            // Region Chart
+            const regionCtx = document.getElementById('regionChart').getContext('2d');
+            new Chart(regionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Nigeria', 'Ghana', 'Senegal', 'Ivory Coast', 'Others'],
+                    datasets: [{
+                        data: [35, 25, 15, 18, 7],
+                        backgroundColor: ['#8B6914', '#4A7C59', '#D4A843', '#6B9E76', '#B8860B'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15 } } },
+                    cutout: '60%'
+                }
+            });
+
+            // Production Chart
+            const prodCtx = document.getElementById('productionChart').getContext('2d');
+            new Chart(prodCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Production (Tons)',
+                        data: [0.8, 1.2, 1.8, 2.5, 3.2, 2.8, 2.1, 1.5, 0.9, 0.6, 0.5, 0.7],
+                        backgroundColor: 'rgba(139,105,20,0.7)',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
+                }
+            });
+
+            // Category Chart
+            const catCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(catCtx, {
+                type: 'polarArea',
+                data: {
+                    labels: ['Raw Nuts', 'Roasted', 'Cashew Butter', 'Cashew Milk', 'Shell Oil', 'Flour'],
+                    datasets: [{
+                        data: [45, 20, 12, 8, 10, 5],
+                        backgroundColor: ['rgba(139,105,20,0.7)', 'rgba(74,124,89,0.7)', 'rgba(212,168,67,0.7)', 'rgba(107,158,118,0.7)', 'rgba(184,134,11,0.7)', 'rgba(245,230,200,0.9)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } } }
+                }
+            });
+        }
+
+        // Profile Dropdown Actions
+        function toggleProfileDropdown() {
+            document.getElementById('profileDropdown').classList.toggle('hidden');
+        }
+
+        function closeProfileDropdown() {
+            document.getElementById('profileDropdown').classList.add('hidden');
+        }
+
+        async function showCurrentFarmerProfile() {
+            const currentId = window.farmAPI.getCurrentFarmer();
+            if (!currentId) return;
+            try {
+                const f = await window.farmAPI.getFarmer(currentId);
+                if (f) {
+                    const imgHtml = f.img ? `<img src="${f.img}" class="w-20 h-20 rounded-full object-cover">` : `<div class="w-20 h-20 rounded-full gradient-green flex items-center justify-center text-white font-bold text-2xl">${f.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase()}</div>`;
+                    document.getElementById('farmerModalContent').innerHTML = `
+                        <div class="p-6">
+                            <div class="flex items-center gap-4 mb-6">
+                                ${imgHtml}
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800">${f.name}</h3>
+                                    <p class="text-sm text-gray-500">📍 ${f.location}</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
+                                        <span class="text-xs text-gray-500">⭐ ${f.rating || 4.5} rating</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-6">${f.bio || 'No biography added yet.'}</p>
+                            <div class="grid grid-cols-3 gap-3 mb-6">
+                                <div class="bg-green-50 rounded-xl p-3 text-center">
+                                    <p class="font-bold text-green-700">${f.numberOfTrees}</p>
+                                    <p class="text-xs text-green-600">Trees</p>
+                                </div>
+                                <div class="bg-amber-50 rounded-xl p-3 text-center">
+                                    <p class="font-bold text-amber-700">${f.totalHarvest || 0}T</p>
+                                    <p class="text-xs text-amber-600">Harvest</p>
+                                </div>
+                                <div class="bg-blue-50 rounded-xl p-3 text-center">
+                                    <p class="font-bold text-blue-700">${f.yearsOfExperience}yr</p>
+                                    <p class="text-xs text-blue-600">Experience</p>
+                                </div>
+                            </div>
+                            <div class="space-y-3 mb-6">
+                                <div class="flex items-center gap-3 text-sm">
+                                    <span class="text-gray-400">📱</span><span class="text-gray-600">${f.phone || 'N/A'}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-sm">
+                                    <span class="text-gray-400">📧</span><span class="text-gray-600">${f.email}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-sm">
+                                    <span class="text-gray-400">🏷️</span><span class="text-gray-600">${f.specialization || 'Raw Cashew Production'}</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                    <button onclick="closeFarmerModal();" class="flex-1 gradient-primary text-white py-3 rounded-xl font-medium hover:opacity-90 transition">Close</button>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('farmerModal').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error('Failed to load active farmer profile:', err);
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('profileDropdown');
+            const avatar = document.getElementById('currentFarmerAvatar');
+            if (dropdown && avatar && !dropdown.contains(e.target) && !avatar.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Close modals on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeFarmerModal();
+                closeAddFarmerModal();
+                closeTradeModal();
+                closeProductModal();
+                closeFarmingLogModal();
+                closeProfileDropdown();
+                document.getElementById('notificationPanel').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
+
